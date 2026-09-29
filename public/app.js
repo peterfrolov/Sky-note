@@ -246,6 +246,10 @@
       // Drag and Drop (HTML5 for Desktop)
       if (!isSearching) {
         card.addEventListener('dragstart', (e) => {
+          if (e.target.closest('button')) {
+            e.preventDefault();
+            return;
+          }
           draggedNoteId = note.id;
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', note.id);
@@ -262,7 +266,8 @@
 
         card.addEventListener('dragover', (e) => {
           e.preventDefault();
-          if (!draggedNoteId || draggedNoteId === note.id) return;
+          const sourceId = draggedNoteId || e.dataTransfer.getData('text/plain');
+          if (!sourceId || sourceId === note.id) return;
           e.dataTransfer.dropEffect = 'move';
 
           const rect = card.getBoundingClientRect();
@@ -285,11 +290,12 @@
         card.addEventListener('drop', (e) => {
           e.preventDefault();
           card.classList.remove('drag-over-top', 'drag-over-bottom');
-          if (!draggedNoteId || draggedNoteId === note.id) return;
+          const sourceId = draggedNoteId || e.dataTransfer.getData('text/plain');
+          if (!sourceId || sourceId === note.id) return;
 
           const rect = card.getBoundingClientRect();
           const insertBefore = e.clientY < (rect.top + rect.height / 2);
-          moveNoteToIndex(draggedNoteId, note.id, insertBefore);
+          moveNoteToIndex(sourceId, note.id, insertBefore);
         });
 
         // Touch Drag for Mobile / Phone
@@ -306,6 +312,7 @@
 
           handle.addEventListener('touchmove', (e) => {
             if (!touchDraggedCard) return;
+            e.preventDefault();
             const touch = e.touches[0];
             const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
             const targetCard = targetEl ? targetEl.closest('.note-card') : null;
@@ -325,7 +332,7 @@
                 targetCard.classList.remove('drag-over-top');
               }
             }
-          }, { passive: true });
+          }, { passive: false });
 
           handle.addEventListener('touchend', () => {
             if (touchDraggedCard && touchLastOver && touchLastOver !== touchDraggedCard) {
@@ -347,6 +354,16 @@
     });
   }
 
+  function highlightCard(noteId) {
+    setTimeout(() => {
+      const el = document.querySelector(`.note-card[data-note-id="${noteId}"]`);
+      if (el) {
+        el.classList.add('just-moved');
+        setTimeout(() => el.classList.remove('just-moved'), 700);
+      }
+    }, 20);
+  }
+
   function moveNoteToIndex(draggedId, targetId, insertBefore) {
     const fromIndex = notes.findIndex(n => n.id === draggedId);
     if (fromIndex === -1) return;
@@ -365,6 +382,7 @@
     saveNotesToStorage();
     renderNotesList();
     syncReorder();
+    highlightCard(draggedId);
     showToast('Noter omrokeret');
   }
 
@@ -385,7 +403,8 @@
     saveNotesToStorage();
     renderNotesList();
     syncReorder();
-    showToast('Noter omrokeret');
+    highlightCard(noteId);
+    showToast(direction === 'up' ? 'Flyttet op' : 'Flyttet ned');
   }
 
   function syncReorder() {

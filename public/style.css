@@ -282,25 +282,33 @@ html, body {
 .drag-handle {
   color: var(--text-muted);
   cursor: grab;
-  padding: 0 4px;
-  font-size: 1.1rem;
+  padding: 2px 6px;
+  font-size: 1rem;
   line-height: 1;
-  opacity: 0.4;
-  transition: opacity 0.15s ease, color 0.15s ease;
+  opacity: 0.75;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .note-card:hover .drag-handle {
-  opacity: 0.9;
+  opacity: 1;
+  border-color: var(--border-subtle);
 }
 
 .drag-handle:hover {
   color: var(--accent);
+  border-color: var(--accent);
   opacity: 1;
 }
 
 .drag-handle:active {
   cursor: grabbing;
+  background: var(--accent-glow);
 }
 
 .note-card-preview {
@@ -323,36 +331,51 @@ html, body {
 .note-card-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.note-card:hover .note-card-actions,
-.note-card.active .note-card-actions {
+  gap: 4px;
   opacity: 1;
 }
 
 .note-btn-action {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
   cursor: pointer;
-  padding: 3px 5px;
-  border-radius: 4px;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
   font-size: 0.75rem;
-  line-height: 1;
+  font-weight: 600;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.12s ease;
+  user-select: none;
 }
 
-.note-btn-action:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
+.note-btn-action:hover:not(:disabled) {
+  color: #ffffff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.note-btn-action:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
 }
 
 .note-btn-action.btn-delete:hover {
-  color: var(--danger);
-  background: rgba(239, 68, 68, 0.15);
+  color: #ffffff;
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+@keyframes highlightMoved {
+  0% { background-color: var(--accent-glow); transform: scale(1.02); }
+  100% { background-color: transparent; transform: scale(1); }
+}
+
+.note-card.just-moved {
+  animation: highlightMoved 0.6s ease;
 }
 
 /* Main Content Area */
