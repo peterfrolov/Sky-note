@@ -1,6 +1,6 @@
 {
-  "name": "Sky-Note",
-  "short_name": "Sky-Note",
+  "name": "Fly Note",
+  "short_name": "Fly Note",
   "description": "Lynhurtig, sky-synkroniseret note-app til PC og mobil",
   "start_url": "./",
   "scope": "./",

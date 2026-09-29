@@ -1,7 +1,7 @@
 {
-  "name": "sky-note",
+  "name": "fly-note",
   "version": "1.0.0",
-  "description": "Lynhurtig, sky-synkroniseret note-app til PC og mobil",
+  "description": "Fly Note - Lynhurtig, sky-synkroniseret note-app til PC og mobil",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,6 +9,7 @@
   },
   "keywords": [
     "notes",
+    "fly-note",
     "cloud-sync",
     "pwa",
     "realtime",

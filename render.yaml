@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: sky-note
+    name: fly-note
     env: node
     plan: free
     buildCommand: ""

@@ -1,5 +1,5 @@
 /**
- * Sky-Note - Client Application Engine
+ * Fly Note - Client Application Engine
  * Ultra-fast, lightweight real-time note syncing
  */
 
@@ -13,9 +13,9 @@
   let serverInfo = { ip: window.location.hostname, port: window.location.port || '3000', cloudUrl: '' };
   let saveTimeout = null;
   let isReceivingRemoteUpdate = false;
-  let deviceId = localStorage.getItem('skynote_device_id') || 'dev_' + Math.random().toString(36).substring(2, 9);
-  let deviceName = localStorage.getItem('skynote_device_name') || (isMobile() ? 'Mobil' : 'PC');
-  localStorage.setItem('skynote_device_id', deviceId);
+  let deviceId = localStorage.getItem('flynote_device_id') || 'dev_' + Math.random().toString(36).substring(2, 9);
+  let deviceName = localStorage.getItem('flynote_device_name') || (isMobile() ? 'Mobil' : 'PC');
+  localStorage.setItem('flynote_device_id', deviceId);
 
   // DOM Elements
   const noteTitleInput = document.getElementById('noteTitle');
@@ -80,7 +80,7 @@
 
   // Theme Management
   function loadTheme() {
-    const savedTheme = localStorage.getItem('skynote_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    const savedTheme = localStorage.getItem('flynote_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
     document.documentElement.setAttribute('data-theme', savedTheme);
     themeIcon.textContent = savedTheme === 'light' ? '☀️' : '🌙';
   }
@@ -89,7 +89,7 @@
     const current = document.documentElement.getAttribute('data-theme') || 'dark';
     const next = current === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('skynote_theme', next);
+    localStorage.setItem('flynote_theme', next);
     themeIcon.textContent = next === 'light' ? '☀️' : '🌙';
     showToast(next === 'light' ? 'Lyst tema aktiveret' : 'Mørkt tema aktiveret');
   }
@@ -97,7 +97,7 @@
   // Local Storage Notes Management
   function loadNotesFromStorage() {
     try {
-      const stored = localStorage.getItem('skynote_notes');
+      const stored = localStorage.getItem('flynote_notes') || localStorage.getItem('skynote_notes');
       if (stored) {
         notes = JSON.parse(stored);
       }
@@ -109,8 +109,8 @@
       // Create initial welcome note
       const defaultNote = {
         id: 'velkommen',
-        title: 'Velkommen til Sky-Note ☁️',
-        content: `# Velkommen til Sky-Note! ⚡\n\nDette er dit nye lynhurtige note-program med automatisk sky-synkronisering.\n\n### 📱 Sådan forbinder du din mobil:\n1. Tryk på knappen **"Forbind mobil"** øverst til højre.\n2. Scan QR-koden med mobilens kamera.\n3. Skriv på PC'en, og se teksten dukke op på mobilen med det samme – og omvendt!\n\n### ⚡ Funktioner:\n- [x] Lynhurtig indlæsning & fjerlet i baggrunden\n- [x] Realtids sky-synkronisering mellem PC og telefon\n- [x] Fungerer 100% offline (PWA app-understøttelse)\n- [ ] Opret din første egen note\n- [ ] Prøv tjeklisten ved at klikke af herover\n\nGod fornøjelse med noterne!`,
+        title: 'Velkommen til Fly Note ✈️',
+        content: `# Velkommen til Fly Note! ⚡\n\nDette er dit nye lynhurtige note-program med automatisk sky-synkronisering.\n\n### 📱 Sådan forbinder du din mobil:\n1. Tryk på knappen **"Forbind mobil"** øverst til højre.\n2. Scan QR-koden med mobilens kamera.\n3. Skriv på PC'en, og se teksten dukke op på mobilen med det samme – og omvendt!\n\n### ⚡ Funktioner:\n- [x] Lynhurtig indlæsning & fjerlet i baggrunden\n- [x] Realtids sky-synkronisering mellem PC og telefon\n- [x] Fungerer 100% offline (PWA app-understøttelse)\n- [ ] Opret din første egen note\n- [ ] Prøv tjeklisten ved at klikke af herover\n\nGod fornøjelse med Fly Note!`,
         updatedAt: Date.now()
       };
       notes = [defaultNote];
@@ -120,7 +120,7 @@
 
   function saveNotesToStorage() {
     try {
-      localStorage.setItem('skynote_notes', JSON.stringify(notes));
+      localStorage.setItem('flynote_notes', JSON.stringify(notes));
     } catch (e) {}
   }
 
@@ -164,7 +164,7 @@
       window.location.hash = noteId;
     }
 
-    document.title = (note.title || 'Uden titel') + ' — Sky-Note';
+    document.title = (note.title || 'Uden titel') + ' — Fly Note';
     renderNotesList();
     updateStats();
 
@@ -283,7 +283,7 @@
       saveNotesToStorage();
       renderNotesList();
       updateStats();
-      document.title = activeNote.title + ' — Sky-Note';
+      document.title = activeNote.title + ' — Fly Note';
     }
 
     clearTimeout(saveTimeout);
@@ -334,7 +334,7 @@
     let host = window.location.host;
 
     // Check if custom cloud URL is configured
-    const customUrl = localStorage.getItem('skynote_custom_cloud_url');
+    const customUrl = localStorage.getItem('flynote_custom_cloud_url') || localStorage.getItem('skynote_custom_cloud_url');
     if (customUrl) {
       try {
         const parsed = new URL(customUrl);
@@ -466,7 +466,6 @@
 
   // QR Code & Mobile Pairing Modal
   function openPhoneModal() {
-    // Generate best mobile pairing URL
     let origin = window.location.origin;
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       if (serverInfo.ip && serverInfo.ip !== 'localhost' && serverInfo.ip !== '127.0.0.1') {
@@ -477,7 +476,6 @@
     const shareUrl = `${origin}/#${currentNoteId}`;
     phoneShareUrl.value = shareUrl;
 
-    // Render QR Code SVG
     if (typeof window.generateQRCodeSVG === 'function') {
       qrCodeFrame.innerHTML = window.generateQRCodeSVG(shareUrl, 220);
     }
@@ -610,7 +608,7 @@
     });
 
     btnSettings.addEventListener('click', () => {
-      customCloudUrlInput.value = localStorage.getItem('skynote_custom_cloud_url') || '';
+      customCloudUrlInput.value = localStorage.getItem('flynote_custom_cloud_url') || '';
       deviceNameInput.value = deviceName;
       openModal(settingsModal);
     });
@@ -618,8 +616,8 @@
     btnSaveSettings.addEventListener('click', () => {
       const url = customCloudUrlInput.value.trim();
       const name = deviceNameInput.value.trim() || 'Min Enhed';
-      localStorage.setItem('skynote_custom_cloud_url', url);
-      localStorage.setItem('skynote_device_name', name);
+      localStorage.setItem('flynote_custom_cloud_url', url);
+      localStorage.setItem('flynote_device_name', name);
       deviceName = name;
       closeModal(settingsModal);
       showToast('Indstillinger gemt');
@@ -690,8 +688,8 @@
     const text = noteContentInput.value || '';
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     const chars = text.length;
-    statWords.textContent = `${words} ${words === 1 ? 'ord' : 'ord'}`;
-    statChars.textContent = `${chars} ${chars === 1 ? 'tegn' : 'tegn'}`;
+    statWords.textContent = `${words} ord`;
+    statChars.textContent = `${chars} tegn`;
   }
 
   function showToast(message) {

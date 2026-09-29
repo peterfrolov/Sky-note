@@ -1,5 +1,5 @@
 /**
- * Sky-Note Server
+ * Fly Note Server
  * Ultra-lightweight HTTP & Real-time WebSocket synchronization server.
  * Built with pure Node.js standard library (Zero-dependency fallback).
  */
@@ -398,7 +398,7 @@ server.listen(PORT, '0.0.0.0', () => {
   const localIp = getLocalIp();
   console.log(`
 ==============================================================
-  ☁️  SKY-NOTE ER KLAR!
+  ✈️  FLY NOTE ER KLAR!
 ==============================================================
 
   💻 Åbn på PC:

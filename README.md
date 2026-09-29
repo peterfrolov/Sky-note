@@ -1,4 +1,4 @@
-# ☁️ Sky-Note
+# ✈️ Fly Note
 
 > **Lynhurtigt, fjerlet note-program med to-vejs sky-synkronisering mellem PC og mobil.**
 
@@ -6,16 +6,6 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![PWA Ready](https://img.shields.io/badge/PWA-Ready-purple.svg)](https://web.dev/progressive-web-apps/)
 [![RAM Usage](https://img.shields.io/badge/RAM-%3C25MB-brightgreen.svg)](#)
-
----
-
-## 💡 Navneidéer
-Du efterspurgte et navn i stilen *"et eller andet- note"*. Her er de bedste forslag:
-1. **Sky-Note** *(Anbefalet standard)*: Dobbeltbetydning på dansk – refererer direkte til **skyen** (cloud-synkronisering) og himlen (let som en fjer).
-2. **Sync-Note**: Præcis, professionel og fokuseret på live synkronisering mellem alle dine enheder.
-3. **Lyn-Note**: Dansk navn med fokus på den lynhurtige opstart og nul spildtid.
-4. **Air-Note**: Minimalistisk og let, svæver i baggrunden uden at belaste computeren.
-5. **Swift-Note**: Hurtig, adræt og elegant.
 
 ---
 
@@ -45,7 +35,7 @@ node server.js
 Du vil se følgende i terminalen:
 ```text
 ==============================================================
-  ☁️  SKY-NOTE ER KLAR!
+  ✈️  FLY NOTE ER KLAR!
 ==============================================================
 
   💻 Åbn på PC:
@@ -75,9 +65,9 @@ Hvis du vil have adgang til dine noter, når du **ikke** er på samme Wi-Fi som 
 
 ### Gratis 1-klik deploy på Render.com:
 1. Opret en gratis konto på [Render.com](https://render.com).
-2. Opret et nyt **Web Service** og forbind dit GitHub repository `peterfrolov/sky-note`.
+2. Opret et nyt **Web Service** og forbind dit GitHub repository `peterfrolov/fly-note`.
 3. Render bruger automatisk den medfølgende `render.yaml`.
-4. Du får din egen faste webadresse (f.eks. `https://sky-note.onrender.com`), som du kan bogmærke på både PC og mobil!
+4. Du får din egen faste webadresse (f.eks. `https://fly-note.onrender.com`), som du kan bogmærke på både PC og mobil!
 
 ---
 
@@ -97,7 +87,7 @@ Hvis du vil have adgang til dine noter, når du **ikke** er på samme Wi-Fi som 
 
 ```text
 ┌─────────────────┐       WebSocket (RFC 6455)       ┌─────────────────┐
-│     PC Client   │ ◄──────────────────────────────► │  Sky-Note Server │
+│     PC Client   │ ◄──────────────────────────────► │  Fly Note Server │
 │   (PWA / Web)   │                                  │   (Node.js HTTP  │
 └─────────────────┘                                  │    + In-Memory   │
                                                      │    JSON Storage) │
@@ -114,5 +104,5 @@ Hvis du vil have adgang til dine noter, når du **ikke** er på samme Wi-Fi som 
 
 ## 📄 Licens
 
-Udgivet under [MIT License](LICENSE).
-Udviklet med fokus på hastighed og minimalt ressourceforbrug.
+Udgivet under [MIT License](LICENSE).  
+Copyright (c) 2026 peterfrolov.
