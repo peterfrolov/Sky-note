@@ -207,10 +207,7 @@
       const timeStr = formatRelativeTime(note.updatedAt || Date.now());
 
       card.innerHTML = `
-        <div class="note-card-header-row">
-          <div class="note-card-title">${escapeHtml(note.title || 'Uden titel')}</div>
-          ${!isSearching ? `<span class="drag-handle" title="Træk for at flytte rækkefølge">⋮⋮</span>` : ''}
-        </div>
+        <div class="note-card-title">${escapeHtml(note.title || 'Uden titel')}</div>
         <div class="note-card-preview">${escapeHtml(cleanPreview)}</div>
         <div class="note-card-meta">
           <span>${timeStr}</span>
@@ -231,7 +228,7 @@
         selectNote(note.id);
       });
 
-      // Drag and Drop (HTML5 for Desktop)
+      // Drag and Drop (Desktop)
       if (!isSearching) {
         card.addEventListener('dragstart', (e) => {
           if (e.target.closest('button')) {
@@ -286,56 +283,63 @@
           moveNoteToIndex(sourceId, note.id, insertBefore);
         });
 
-        // Touch Drag for Mobile / Phone
-        const handle = card.querySelector('.drag-handle');
-        if (handle) {
-          let touchDraggedCard = null;
-          let touchLastOver = null;
+        // Touch Drag for Mobile / Phone (Press and hold for 250ms then drag)
+        let touchTimer = null;
+        let isTouchDragging = false;
+        let touchLastOver = null;
 
-          handle.addEventListener('touchstart', (e) => {
-            touchDraggedCard = card;
+        card.addEventListener('touchstart', (e) => {
+          if (e.target.closest('button')) return;
+          touchTimer = setTimeout(() => {
+            isTouchDragging = true;
             draggedNoteId = note.id;
             card.classList.add('dragging');
-          }, { passive: true });
+            if (navigator.vibrate) navigator.vibrate(30);
+          }, 250);
+        }, { passive: true });
 
-          handle.addEventListener('touchmove', (e) => {
-            if (!touchDraggedCard) return;
-            e.preventDefault();
-            const touch = e.touches[0];
-            const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
-            const targetCard = targetEl ? targetEl.closest('.note-card') : null;
+        card.addEventListener('touchmove', (e) => {
+          if (!isTouchDragging) {
+            clearTimeout(touchTimer);
+            return;
+          }
+          e.preventDefault();
+          const touch = e.touches[0];
+          const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+          const targetCard = targetEl ? targetEl.closest('.note-card') : null;
 
-            document.querySelectorAll('.note-card').forEach(c => {
-              if (c !== targetCard) c.classList.remove('drag-over-top', 'drag-over-bottom');
-            });
-
-            if (targetCard && targetCard !== touchDraggedCard) {
-              touchLastOver = targetCard;
-              const rect = targetCard.getBoundingClientRect();
-              if (touch.clientY < rect.top + rect.height / 2) {
-                targetCard.classList.add('drag-over-top');
-                targetCard.classList.remove('drag-over-bottom');
-              } else {
-                targetCard.classList.add('drag-over-bottom');
-                targetCard.classList.remove('drag-over-top');
-              }
-            }
-          }, { passive: false });
-
-          handle.addEventListener('touchend', () => {
-            if (touchDraggedCard && touchLastOver && touchLastOver !== touchDraggedCard) {
-              const isTop = touchLastOver.classList.contains('drag-over-top');
-              const targetId = touchLastOver.dataset.noteId;
-              moveNoteToIndex(draggedNoteId, targetId, isTop);
-            }
-            document.querySelectorAll('.note-card').forEach(c => {
-              c.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
-            });
-            touchDraggedCard = null;
-            touchLastOver = null;
-            draggedNoteId = null;
+          document.querySelectorAll('.note-card').forEach(c => {
+            if (c !== targetCard) c.classList.remove('drag-over-top', 'drag-over-bottom');
           });
-        }
+
+          if (targetCard && targetCard !== card) {
+            touchLastOver = targetCard;
+            const rect = targetCard.getBoundingClientRect();
+            if (touch.clientY < rect.top + rect.height / 2) {
+              targetCard.classList.add('drag-over-top');
+              targetCard.classList.remove('drag-over-bottom');
+            } else {
+              targetCard.classList.add('drag-over-bottom');
+              targetCard.classList.remove('drag-over-top');
+            }
+          }
+        }, { passive: false });
+
+        card.addEventListener('touchend', () => {
+          clearTimeout(touchTimer);
+          if (isTouchDragging && touchLastOver && touchLastOver !== card) {
+            const isTop = touchLastOver.classList.contains('drag-over-top');
+            const targetId = touchLastOver.dataset.noteId;
+            moveNoteToIndex(draggedNoteId, targetId, isTop);
+          }
+          isTouchDragging = false;
+          touchLastOver = null;
+          draggedNoteId = null;
+          card.classList.remove('dragging');
+          document.querySelectorAll('.note-card').forEach(c => {
+            c.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+          });
+        });
       }
 
       notesListEl.appendChild(card);
