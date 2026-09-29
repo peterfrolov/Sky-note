@@ -215,28 +215,16 @@
         <div class="note-card-meta">
           <span>${timeStr}</span>
           <div class="note-card-actions">
-            ${!isSearching ? `
-              <button class="note-btn-action btn-move-up" data-move="up" data-id="${note.id}" title="Flyt op" ${index === 0 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>▲</button>
-              <button class="note-btn-action btn-move-down" data-move="down" data-id="${note.id}" title="Flyt ned" ${index === filtered.length - 1 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>▼</button>
-            ` : ''}
             <button class="note-btn-action btn-delete" data-delete-id="${note.id}" title="Slet note">✕</button>
           </div>
         </div>
       `;
 
-      // Click to select note or handle actions
+      // Click to select note or delete
       card.addEventListener('click', (e) => {
         if (e.target.closest('.btn-delete')) {
           e.stopPropagation();
           deleteNote(note.id);
-          return;
-        }
-
-        const moveBtn = e.target.closest('[data-move]');
-        if (moveBtn) {
-          e.stopPropagation();
-          const dir = moveBtn.dataset.move;
-          moveNoteDirection(note.id, dir);
           return;
         }
 
