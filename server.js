@@ -116,6 +116,32 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (url.pathname === '/api/notes/reorder' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        if (Array.isArray(payload.noteIds)) {
+          const orderMap = new Map(payload.noteIds.map((id, index) => [id, index]));
+          notes.sort((a, b) => {
+            const orderA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
+            const orderB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
+            return orderA - orderB;
+          });
+          saveNotesToDisk();
+          broadcast({ type: 'notes_reorder', noteIds: payload.noteIds });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+          return;
+        }
+      } catch (e) {}
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Ugyldig request' }));
+    });
+    return;
+  }
+
   const noteMatch = url.pathname.match(/^\/api\/notes\/([a-zA-Z0-9_\-]+)$/);
   if (noteMatch) {
     const noteId = noteMatch[1];
@@ -363,6 +389,17 @@ function handleClientMessage(socket, meta, data) {
     notes = notes.filter(n => n.id !== data.noteId);
     saveNotesToDisk();
     broadcast({ type: 'delete_note', noteId: data.noteId }, socket);
+  } else if (data.type === 'notes_reorder') {
+    if (Array.isArray(data.noteIds)) {
+      const orderMap = new Map(data.noteIds.map((id, index) => [id, index]));
+      notes.sort((a, b) => {
+        const orderA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
+        const orderB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
+        return orderA - orderB;
+      });
+      saveNotesToDisk();
+      broadcast({ type: 'notes_reorder', noteIds: data.noteIds }, socket);
+    }
   }
 }
 

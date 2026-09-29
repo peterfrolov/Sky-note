@@ -241,6 +241,34 @@ html, body {
   box-shadow: 0 0 0 1px var(--accent);
 }
 
+/* Drag and Drop styling */
+.note-card.dragging {
+  opacity: 0.4;
+  transform: scale(0.98);
+  border: 1px dashed var(--accent);
+  background-color: var(--bg-tertiary);
+}
+
+.note-card.drag-over-top {
+  border-top: 2px solid var(--accent) !important;
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+}
+
+.note-card.drag-over-bottom {
+  border-bottom: 2px solid var(--accent) !important;
+  border-bottom-left-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+.note-card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
 .note-card-title {
   font-weight: 600;
   font-size: 0.92rem;
@@ -248,7 +276,31 @@ html, body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 3px;
+  flex: 1;
+}
+
+.drag-handle {
+  color: var(--text-muted);
+  cursor: grab;
+  padding: 0 4px;
+  font-size: 1.1rem;
+  line-height: 1;
+  opacity: 0.4;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  touch-action: none;
+}
+
+.note-card:hover .drag-handle {
+  opacity: 0.9;
+}
+
+.drag-handle:hover {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }
 
 .note-card-preview {
@@ -257,7 +309,7 @@ html, body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 
 .note-card-meta {
@@ -268,25 +320,39 @@ html, body {
   color: var(--text-muted);
 }
 
-.note-card-delete {
+.note-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.note-card:hover .note-card-actions,
+.note-card.active .note-card-actions {
+  opacity: 1;
+}
+
+.note-btn-action {
   background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 3px 5px;
   border-radius: 4px;
-  font-size: 0.85rem;
-  transition: opacity 0.15s ease, color 0.15s ease;
+  font-size: 0.75rem;
+  line-height: 1;
+  transition: all 0.12s ease;
 }
 
-.note-card:hover .note-card-delete {
-  opacity: 1;
+.note-btn-action:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
-.note-card-delete:hover {
+.note-btn-action.btn-delete:hover {
   color: var(--danger);
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(239, 68, 68, 0.15);
 }
 
 /* Main Content Area */

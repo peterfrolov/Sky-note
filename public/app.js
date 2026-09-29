@@ -182,42 +182,226 @@
     closeMobileSidebar();
   }
 
+  let draggedNoteId = null;
+
   function renderNotesList() {
     const query = (searchInput.value || '').toLowerCase().trim();
+    const isSearching = !!query;
     const filtered = notes.filter(n => {
       if (!query) return true;
       return (n.title || '').toLowerCase().includes(query) || (n.content || '').toLowerCase().includes(query);
     });
 
     notesListEl.innerHTML = '';
-    filtered.forEach(note => {
+    filtered.forEach((note, index) => {
       const card = document.createElement('div');
       card.className = 'note-card' + (note.id === currentNoteId ? ' active' : '');
+      card.dataset.noteId = note.id;
+
+      if (!isSearching) {
+        card.setAttribute('draggable', 'true');
+      }
       
       const firstLine = (note.content || '').split('\n').find(l => l.trim().length > 0) || 'Tom note...';
       const cleanPreview = firstLine.replace(/^#+\s*/, '').replace(/[-*]\s*(\[[ xX]\])?/, '').trim();
       const timeStr = formatRelativeTime(note.updatedAt || Date.now());
 
       card.innerHTML = `
-        <div class="note-card-title">${escapeHtml(note.title || 'Uden titel')}</div>
+        <div class="note-card-header-row">
+          <div class="note-card-title">${escapeHtml(note.title || 'Uden titel')}</div>
+          ${!isSearching ? `<span class="drag-handle" title="Træk for at flytte rækkefølge">⋮⋮</span>` : ''}
+        </div>
         <div class="note-card-preview">${escapeHtml(cleanPreview)}</div>
         <div class="note-card-meta">
           <span>${timeStr}</span>
-          <button class="note-card-delete" data-delete-id="${note.id}" title="Slet note">✕</button>
+          <div class="note-card-actions">
+            ${!isSearching ? `
+              <button class="note-btn-action btn-move-up" data-move="up" data-id="${note.id}" title="Flyt op" ${index === 0 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>▲</button>
+              <button class="note-btn-action btn-move-down" data-move="down" data-id="${note.id}" title="Flyt ned" ${index === filtered.length - 1 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>▼</button>
+            ` : ''}
+            <button class="note-btn-action btn-delete" data-delete-id="${note.id}" title="Slet note">✕</button>
+          </div>
         </div>
       `;
 
+      // Click to select note or handle actions
       card.addEventListener('click', (e) => {
-        if (e.target.closest('.note-card-delete')) {
+        if (e.target.closest('.btn-delete')) {
           e.stopPropagation();
           deleteNote(note.id);
           return;
         }
+
+        const moveBtn = e.target.closest('[data-move]');
+        if (moveBtn) {
+          e.stopPropagation();
+          const dir = moveBtn.dataset.move;
+          moveNoteDirection(note.id, dir);
+          return;
+        }
+
         selectNote(note.id);
       });
 
+      // Drag and Drop (HTML5 for Desktop)
+      if (!isSearching) {
+        card.addEventListener('dragstart', (e) => {
+          draggedNoteId = note.id;
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', note.id);
+          card.classList.add('dragging');
+        });
+
+        card.addEventListener('dragend', () => {
+          card.classList.remove('dragging');
+          document.querySelectorAll('.note-card').forEach(c => {
+            c.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+          });
+          draggedNoteId = null;
+        });
+
+        card.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          if (!draggedNoteId || draggedNoteId === note.id) return;
+          e.dataTransfer.dropEffect = 'move';
+
+          const rect = card.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          if (e.clientY < midY) {
+            card.classList.add('drag-over-top');
+            card.classList.remove('drag-over-bottom');
+          } else {
+            card.classList.add('drag-over-bottom');
+            card.classList.remove('drag-over-top');
+          }
+        });
+
+        card.addEventListener('dragleave', (e) => {
+          if (!card.contains(e.relatedTarget)) {
+            card.classList.remove('drag-over-top', 'drag-over-bottom');
+          }
+        });
+
+        card.addEventListener('drop', (e) => {
+          e.preventDefault();
+          card.classList.remove('drag-over-top', 'drag-over-bottom');
+          if (!draggedNoteId || draggedNoteId === note.id) return;
+
+          const rect = card.getBoundingClientRect();
+          const insertBefore = e.clientY < (rect.top + rect.height / 2);
+          moveNoteToIndex(draggedNoteId, note.id, insertBefore);
+        });
+
+        // Touch Drag for Mobile / Phone
+        const handle = card.querySelector('.drag-handle');
+        if (handle) {
+          let touchDraggedCard = null;
+          let touchLastOver = null;
+
+          handle.addEventListener('touchstart', (e) => {
+            touchDraggedCard = card;
+            draggedNoteId = note.id;
+            card.classList.add('dragging');
+          }, { passive: true });
+
+          handle.addEventListener('touchmove', (e) => {
+            if (!touchDraggedCard) return;
+            const touch = e.touches[0];
+            const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetCard = targetEl ? targetEl.closest('.note-card') : null;
+
+            document.querySelectorAll('.note-card').forEach(c => {
+              if (c !== targetCard) c.classList.remove('drag-over-top', 'drag-over-bottom');
+            });
+
+            if (targetCard && targetCard !== touchDraggedCard) {
+              touchLastOver = targetCard;
+              const rect = targetCard.getBoundingClientRect();
+              if (touch.clientY < rect.top + rect.height / 2) {
+                targetCard.classList.add('drag-over-top');
+                targetCard.classList.remove('drag-over-bottom');
+              } else {
+                targetCard.classList.add('drag-over-bottom');
+                targetCard.classList.remove('drag-over-top');
+              }
+            }
+          }, { passive: true });
+
+          handle.addEventListener('touchend', () => {
+            if (touchDraggedCard && touchLastOver && touchLastOver !== touchDraggedCard) {
+              const isTop = touchLastOver.classList.contains('drag-over-top');
+              const targetId = touchLastOver.dataset.noteId;
+              moveNoteToIndex(draggedNoteId, targetId, isTop);
+            }
+            document.querySelectorAll('.note-card').forEach(c => {
+              c.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+            });
+            touchDraggedCard = null;
+            touchLastOver = null;
+            draggedNoteId = null;
+          });
+        }
+      }
+
       notesListEl.appendChild(card);
     });
+  }
+
+  function moveNoteToIndex(draggedId, targetId, insertBefore) {
+    const fromIndex = notes.findIndex(n => n.id === draggedId);
+    if (fromIndex === -1) return;
+
+    const [movedNote] = notes.splice(fromIndex, 1);
+    let targetIndex = notes.findIndex(n => n.id === targetId);
+    if (targetIndex === -1) {
+      notes.push(movedNote);
+    } else {
+      if (!insertBefore) {
+        targetIndex += 1;
+      }
+      notes.splice(targetIndex, 0, movedNote);
+    }
+
+    saveNotesToStorage();
+    renderNotesList();
+    syncReorder();
+    showToast('Noter omrokeret');
+  }
+
+  function moveNoteDirection(noteId, direction) {
+    const index = notes.findIndex(n => n.id === noteId);
+    if (index === -1) return;
+
+    if (direction === 'up' && index > 0) {
+      const [moved] = notes.splice(index, 1);
+      notes.splice(index - 1, 0, moved);
+    } else if (direction === 'down' && index < notes.length - 1) {
+      const [moved] = notes.splice(index, 1);
+      notes.splice(index + 1, 0, moved);
+    } else {
+      return;
+    }
+
+    saveNotesToStorage();
+    renderNotesList();
+    syncReorder();
+    showToast('Noter omrokeret');
+  }
+
+  function syncReorder() {
+    const noteIds = notes.map(n => n.id);
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type: 'notes_reorder',
+        noteIds: noteIds
+      }));
+    } else {
+      fetch('./api/notes/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noteIds })
+      }).catch(() => {});
+    }
   }
 
   function createNewNote() {
@@ -442,6 +626,29 @@
             noteTitleInput.value = cur.title || '';
             noteContentInput.value = cur.content || '';
           }
+        }
+      }
+    } else if (data.type === 'notes_reorder') {
+      if (Array.isArray(data.noteIds)) {
+        const orderMap = new Map(data.noteIds.map((id, index) => [id, index]));
+        notes.sort((a, b) => {
+          const orderA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
+          const orderB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
+          return orderA - orderB;
+        });
+        saveNotesToStorage();
+        renderNotesList();
+        setSyncStatus('peer-active', 'Rækkefølge opdateret');
+        setTimeout(() => setSyncStatus('online', 'Gemt i skyen'), 2000);
+      }
+    } else if (data.type === 'delete_note') {
+      if (data.noteId) {
+        notes = notes.filter(n => n.id !== data.noteId);
+        saveNotesToStorage();
+        if (currentNoteId === data.noteId && notes.length > 0) {
+          selectNote(notes[0].id);
+        } else {
+          renderNotesList();
         }
       }
     }
