@@ -698,21 +698,61 @@
 
   // QR Code & Mobile Pairing Modal
   function openPhoneModal() {
-    let origin = window.location.origin;
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      if (serverInfo.ip && serverInfo.ip !== 'localhost' && serverInfo.ip !== '127.0.0.1') {
-        origin = `http://${serverInfo.ip}:${serverInfo.port || 3000}`;
+    try {
+      let origin = window.location.origin;
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        if (serverInfo.ip && serverInfo.ip !== 'localhost' && serverInfo.ip !== '127.0.0.1') {
+          origin = `http://${serverInfo.ip}:${serverInfo.port || 3000}`;
+        }
       }
+
+      const noteId = currentNoteId || (notes[0] ? notes[0].id : 'velkommen');
+      const shareUrl = `${origin}/#${noteId}`;
+      if (phoneShareUrl) {
+        phoneShareUrl.value = shareUrl;
+      }
+
+      const directEl = document.getElementById('directAddressCode');
+      if (directEl) {
+        const host = (serverInfo.ip && serverInfo.ip !== 'localhost' && serverInfo.ip !== '127.0.0.1')
+          ? `${serverInfo.ip}:${serverInfo.port || 3000}`
+          : window.location.host;
+        directEl.textContent = `http://${host}`;
+      }
+
+      if (qrCodeFrame) {
+        let svg = null;
+        if (typeof window.generateQRCodeSVG === 'function') {
+          try {
+            svg = window.generateQRCodeSVG(shareUrl, 220);
+          } catch (e) {
+            console.warn('generateQRCodeSVG error:', e);
+          }
+        }
+        if (!svg) {
+          svg = generateBuiltinQR(shareUrl, 220);
+        }
+        qrCodeFrame.innerHTML = svg;
+      }
+
+      openModal(phoneModal);
+    } catch (err) {
+      console.error('Fejl i openPhoneModal:', err);
+      if (phoneModal) openModal(phoneModal);
     }
+  }
 
-    const shareUrl = `${origin}/#${currentNoteId}`;
-    phoneShareUrl.value = shareUrl;
-
+  function generateBuiltinQR(text, size) {
     if (typeof window.generateQRCodeSVG === 'function') {
-      qrCodeFrame.innerHTML = window.generateQRCodeSVG(shareUrl, 220);
+      try {
+        return window.generateQRCodeSVG(text, size);
+      } catch (e) {}
     }
-
-    openModal(phoneModal);
+    return `<div style="text-align:center; padding:16px; font-size:0.9rem; color:var(--text-secondary);">
+      <div style="font-size:2.5rem; margin-bottom:8px;">📱</div>
+      <b>Åbn direkte på mobilen:</b><br>
+      <a href="${text}" target="_blank" style="color:var(--accent); font-weight:600; word-break:break-all;">${text}</a>
+    </div>`;
   }
 
   // Formatting Toolbar Operations
@@ -838,9 +878,26 @@
 
     btnConnectPhone.addEventListener('click', openPhoneModal);
     btnCopyShareUrl.addEventListener('click', () => {
-      navigator.clipboard.writeText(phoneShareUrl.value).then(() => {
+      const url = phoneShareUrl ? phoneShareUrl.value : '';
+      if (!url) return;
+
+      const copySuccess = () => {
+        btnCopyShareUrl.textContent = '✓ Kopieret!';
         showToast('Link kopieret til udklipsholder');
-      });
+        setTimeout(() => {
+          btnCopyShareUrl.textContent = 'Kopiér';
+        }, 2000);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(copySuccess).catch(() => {
+          fallbackCopyText(url);
+          copySuccess();
+        });
+      } else {
+        fallbackCopyText(url);
+        copySuccess();
+      }
     });
 
     btnExport.addEventListener('click', () => openModal(exportModal));
@@ -898,17 +955,38 @@
     setupChecklistClick();
   }
 
+  function fallbackCopyText(text) {
+    const tempInput = document.createElement('textarea');
+    tempInput.value = text;
+    tempInput.style.position = 'fixed';
+    tempInput.style.left = '-9999px';
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    try {
+      document.execCommand('copy');
+    } catch (e) {}
+    document.body.removeChild(tempInput);
+  }
+
   function closeMobileSidebar() {
     sidebar.classList.remove('open');
     sidebarBackdrop.classList.remove('active');
   }
 
   function openModal(modal) {
+    if (!modal) return;
     modal.classList.add('active');
+    modal.style.display = 'flex';
+    modal.style.opacity = '1';
+    modal.style.visibility = 'visible';
   }
 
   function closeModal(modal) {
+    if (!modal) return;
     modal.classList.remove('active');
+    modal.style.display = 'none';
+    modal.style.opacity = '0';
+    modal.style.visibility = 'hidden';
   }
 
   function exportFile(extension) {
@@ -969,4 +1047,15 @@
       "'": '&#39;'
     }[m]));
   }
+
+  // Expose global API on window
+  window.FlyNote = {
+    openPhoneModal,
+    closeModal,
+    openModal,
+    selectNote,
+    createNewNote,
+    deleteNote,
+    toggleTheme
+  };
 })();

@@ -661,20 +661,22 @@ html, body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 9999;
   padding: 16px;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.15s ease;
 }
 
 .modal-overlay.active {
-  display: flex;
-  opacity: 1;
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 
 .modal-box {
@@ -770,6 +772,42 @@ html, body {
   font-size: 0.85rem;
   font-family: var(--font-mono);
   outline: none;
+}
+
+.direct-address-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.direct-address-title {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.direct-address-code {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+  background: var(--bg-primary);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed rgba(56, 189, 248, 0.4);
+  display: inline-block;
+  user-select: all;
+  margin-bottom: 6px;
+}
+
+.direct-address-note {
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 .step-guide {
