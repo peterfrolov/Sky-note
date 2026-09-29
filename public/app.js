@@ -184,6 +184,8 @@
 
   let draggedNoteId = null;
 
+  let isReorderMode = false;
+
   function renderNotesList() {
     const query = (searchInput.value || '').toLowerCase().trim();
     const isSearching = !!query;
@@ -212,16 +214,28 @@
         <div class="note-card-meta">
           <span>${timeStr}</span>
           <div class="note-card-actions">
+            ${isReorderMode ? `
+              <button class="note-btn-move btn-move-up" data-move="up" data-id="${note.id}" title="Flyt op" ${index === 0 ? 'disabled' : ''}>▲</button>
+              <button class="note-btn-move btn-move-down" data-move="down" data-id="${note.id}" title="Flyt ned" ${index === filtered.length - 1 ? 'disabled' : ''}>▼</button>
+            ` : ''}
             <button class="note-btn-action btn-delete" data-delete-id="${note.id}" title="Slet note">✕</button>
           </div>
         </div>
       `;
 
-      // Click to select note or delete
+      // Click to select note or delete or move
       card.addEventListener('click', (e) => {
         if (e.target.closest('.btn-delete')) {
           e.stopPropagation();
           deleteNote(note.id);
+          return;
+        }
+
+        const moveBtn = e.target.closest('[data-move]');
+        if (moveBtn) {
+          e.stopPropagation();
+          const dir = moveBtn.dataset.move;
+          moveNoteDirection(note.id, dir);
           return;
         }
 
@@ -800,6 +814,18 @@
     noteTitleInput.addEventListener('input', onNoteInput);
     noteContentInput.addEventListener('input', onNoteInput);
     btnNewNote.addEventListener('click', createNewNote);
+    
+    const btnToggleReorder = document.getElementById('btnToggleReorder');
+    if (btnToggleReorder) {
+      btnToggleReorder.addEventListener('click', () => {
+        isReorderMode = !isReorderMode;
+        btnToggleReorder.classList.toggle('active', isReorderMode);
+        sidebar.classList.toggle('reorder-mode', isReorderMode);
+        renderNotesList();
+        showToast(isReorderMode ? 'Tryk på pilene for at flytte noter' : 'Omrokering afsluttet');
+      });
+    }
+
     searchInput.addEventListener('input', renderNotesList);
     btnToggleTheme.addEventListener('click', toggleTheme);
 

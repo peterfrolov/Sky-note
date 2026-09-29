@@ -86,6 +86,7 @@ function updatePresence(noteId) {
 
 // Create HTTP Server
 const server = http.createServer((req, res) => {
+  console.log(`[REQ] ${req.method} ${req.url} from ${req.socket.remoteAddress}`);
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   // CORS Headers
@@ -244,6 +245,7 @@ server.on('upgrade', (req, socket, head) => {
     socket.destroy();
     return;
   }
+  console.log(`[WS UPGRADE] from ${socket.remoteAddress}`);
 
   const key = req.headers['sec-websocket-key'];
   if (!key) {
