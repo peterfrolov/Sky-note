@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+    <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e0e7ff" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect width="512" height="512" rx="112" fill="url(#skyGrad)" />
+
+  <!-- Cloud Body with shadow -->
+  <g filter="url(#shadow)">
+    <path fill="url(#cloudGrad)" d="M 370 330 L 160 330 A 70 70 0 0 1 140 193 A 92 92 0 0 1 315 168 A 72 72 0 0 1 370 230 A 60 60 0 0 1 370 330 Z" />
+  </g>
+
+  <!-- Sync Lightning / Pencil Symbol inside Cloud -->
+  <path d="M 270 195 L 225 265 L 260 265 L 235 325 L 295 250 L 255 250 Z" 
+        fill="url(#skyGrad)" />
+</svg>

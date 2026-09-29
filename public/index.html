@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="da" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Sky-Note | Hurtig & fjerlet sky-synkronisering</title>
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#090d16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sky-Note">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Backdrop for mobile sidebar -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <a href="#" class="brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="64" height="64" rx="14" fill="#38bdf8"/>
+              <path d="M46 41H20C15 41 11 37 11 32C11 27.5 14.5 23.8 19 23.1C20.5 17 25.8 12.5 32.5 12.5C40 12.5 46.2 18 47 25.3C50.5 26.2 53 29.3 53 33C53 37.4 49.4 41 46 41Z" fill="#ffffff"/>
+              <path d="M34 23L27 32H32L29 39L37 30H32L34 23Z" fill="#0284c7"/>
+            </svg>
+          </div>
+          <span>Sky-Note</span>
+          <span class="brand-badge">Sync</span>
+        </a>
+      </div>
+
+      <div class="sidebar-search-box">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" class="search-input" placeholder="Søg i dine noter..." autocomplete="off">
+        </div>
+      </div>
+
+      <div class="sidebar-actions">
+        <button id="btnNewNote" class="btn-new-note">
+          <span>＋</span>
+          <span>Ny note</span>
+        </button>
+      </div>
+
+      <div id="notesList" class="notes-list">
+        <!-- Notes rendered here dynamically -->
+      </div>
+    </aside>
+
+    <!-- Main Editor Area -->
+    <main class="main-area">
+      <!-- Header -->
+      <header class="main-header">
+        <div class="header-left">
+          <button id="btnToggleSidebar" class="btn-sidebar-toggle" title="Menu / Noter">
+            ☰
+          </button>
+          
+          <div id="syncBadge" class="sync-badge" title="Forbindelsesstatus">
+            <span id="syncDot" class="sync-dot"></span>
+            <span id="syncText">Forbinder...</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <button id="btnConnectPhone" class="btn-icon btn-phone-connect" title="Forbind mobil">
+            <span>📱</span>
+            <span class="hide-on-mobile">Forbind mobil</span>
+          </button>
+
+          <button id="btnExport" class="btn-icon" title="Eksportér note">
+            <span>📤</span>
+            <span class="hide-on-mobile">Eksportér</span>
+          </button>
+
+          <button id="btnSettings" class="btn-icon" title="Sky-indstillinger">
+            <span>⚙️</span>
+          </button>
+
+          <button id="btnToggleTheme" class="btn-icon" title="Skift mørkt/lyst tema">
+            <span id="themeIcon">🌓</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Formatting Toolbar -->
+      <div class="editor-toolbar">
+        <button class="tool-btn" data-tool="h1" title="Stor overskrift (H1)"><b>H1</b></button>
+        <button class="tool-btn" data-tool="h2" title="Mellem overskrift (H2)"><b>H2</b></button>
+        <div class="tool-divider"></div>
+        <button class="tool-btn" data-tool="bold" title="Fed (Ctrl+B)"><b>B</b></button>
+        <button class="tool-btn" data-tool="italic" title="Kursiv (Ctrl+I)"><i>I</i></button>
+        <button class="tool-btn" data-tool="strike" title="Gennemstreget"><s>S</s></button>
+        <div class="tool-divider"></div>
+        <button class="tool-btn" data-tool="checklist" title="Tjekliste (☑️)">☑</button>
+        <button class="tool-btn" data-tool="bullet" title="Punktliste (•)">•</button>
+        <button class="tool-btn" data-tool="code" title="Kodeblok">&lt;&gt;</button>
+        <div class="tool-divider"></div>
+        <button class="tool-btn" data-tool="timestamp" title="Indsæt tidsstempel">🕒</button>
+      </div>
+
+      <!-- Editor Content -->
+      <div class="editor-wrapper">
+        <input type="text" id="noteTitle" class="note-title-input" placeholder="Titel på noten..." autocomplete="off">
+        <textarea id="noteContent" class="note-body-textarea" placeholder="Begynd at skrive her... Alt gemmes automatisk og synkroniseres øjeblikkeligt med din telefon eller PC."></textarea>
+      </div>
+
+      <!-- Footer Info Bar -->
+      <footer class="editor-footer">
+        <div id="activeDevicesInfo">
+          <span>☁️ Sky-synkronisering aktiv</span>
+        </div>
+        <div class="footer-stats">
+          <span id="statWords">0 ord</span>
+          <span id="statChars">0 tegn</span>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Modal: Forbind mobil (QR Code) -->
+  <div id="phoneModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title"><span>📱</span> Forbind mobil til denne note</h3>
+        <button class="modal-close" data-close="phoneModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="qr-container">
+          <div id="qrCodeFrame" class="qr-frame">
+            <!-- QR code generated here -->
+          </div>
+          <div class="qr-url-box">
+            <input type="text" id="phoneShareUrl" class="qr-url-input" readonly>
+            <button id="btnCopyShareUrl" class="btn-icon">Kopiér</button>
+          </div>
+        </div>
+
+        <div class="step-guide">
+          <strong>Sådan gør du på 10 sekunder:</strong>
+          <ol>
+            <li>Åbn <b>kameraet</b> på din iPhone eller Android.</li>
+            <li>Peg kameraet mod QR-koden og tryk på det gule/blå link.</li>
+            <li><b>Tip for app-oplevelse:</b>
+              <br>• iPhone: Tryk <i>Del</i> nederst ➔ <i>"Føj til hjemmeskærm"</i>.
+              <br>• Android: Tryk på menuen (⋮) ➔ <i>"Installer app"</i>.
+            </li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Eksportér -->
+  <div id="exportModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title"><span>📤</span> Eksportér note</h3>
+        <button class="modal-close" data-close="exportModal">&times;</button>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:10px;">
+        <button id="btnExportMarkdown" class="btn-icon" style="justify-content:flex-start; padding:12px 16px; height:auto;">
+          📄 <b>Download som Markdown (.md)</b>
+        </button>
+        <button id="btnExportTxt" class="btn-icon" style="justify-content:flex-start; padding:12px 16px; height:auto;">
+          📝 <b>Download som tekstfil (.txt)</b>
+        </button>
+        <button id="btnPrintNote" class="btn-icon" style="justify-content:flex-start; padding:12px 16px; height:auto;">
+          🖨️ <b>Udskriv / Gem som PDF</b>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Sky-indstillinger -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title"><span>⚙️</span> Sky- & synkroniseringsindstillinger</h3>
+        <button class="modal-close" data-close="settingsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Synkroniseringsmetode</label>
+          <div class="step-guide" style="margin-bottom:12px;">
+            <b>🟢 Standard:</b> Sky-Note synkroniserer direkte i realtid via WebSocket over dit netværk eller din cloud-server (f.eks. Render eller Vercel).
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="customCloudUrl">Brugerdefineret Cloud URL (valgfri)</label>
+          <input type="text" id="customCloudUrl" class="form-input" placeholder="f.eks. https://sky-note.onrender.com">
+          <div class="form-help">Lad feltet være tomt for at bruge den aktuelle server automatisk.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="deviceName">Enhedsnavn</label>
+          <input type="text" id="deviceName" class="form-input" placeholder="F.eks. Peter PC, iPhone...">
+        </div>
+
+        <div style="margin-top:16px;">
+          <button id="btnSaveSettings" class="btn-new-note">Gem indstillinger</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast">
+    <span id="toastIcon">✨</span>
+    <span id="toastMessage">Noten er gemt</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="qrcode.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
