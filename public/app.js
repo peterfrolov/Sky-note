@@ -16,6 +16,8 @@
   let deviceId = localStorage.getItem('flynote_device_id') || 'dev_' + Math.random().toString(36).substring(2, 9);
   let deviceName = localStorage.getItem('flynote_device_name') || (isMobile() ? 'Mobil' : 'PC');
   localStorage.setItem('flynote_device_id', deviceId);
+  let draggedNoteId = null;
+  let isReorderMode = false;
 
   // DOM Elements
   const noteTitleInput = document.getElementById('noteTitle');
@@ -51,9 +53,6 @@
   const activeDevicesInfo = document.getElementById('activeDevicesInfo');
   const toast = document.getElementById('toast');
   const toastMessage = document.getElementById('toastMessage');
-
-  // Initialize
-  init();
 
   function init() {
     loadTheme();
@@ -181,10 +180,6 @@
     // Close mobile sidebar if open
     closeMobileSidebar();
   }
-
-  let draggedNoteId = null;
-
-  let isReorderMode = false;
 
   function renderNotesList() {
     const query = (searchInput.value || '').toLowerCase().trim();
@@ -1047,6 +1042,9 @@
       "'": '&#39;'
     }[m]));
   }
+
+  // Initialize application after all definitions are ready
+  init();
 
   // Expose global API on window
   window.FlyNote = {
