@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
   
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <div class="app-container">
@@ -170,6 +170,25 @@
     </div>
   </div>
 
+  <!-- Modal: Slet note bekræftelse -->
+  <div id="deleteModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--danger);"><span>🗑️</span> Slet note</h3>
+        <button class="modal-close" data-close="deleteModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="deleteModalPrompt" style="margin-bottom: 20px; font-size: 0.95rem; line-height: 1.5; color: var(--text-secondary);">
+          Er du sikker på, at du vil slette denne note?
+        </p>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button id="btnCancelDelete" class="btn-icon" data-close="deleteModal" style="padding: 8px 16px;">Annuller</button>
+          <button id="btnConfirmDelete" class="btn-icon" style="background: var(--danger); color: #fff; border-color: var(--danger); font-weight: 600; padding: 8px 16px;">Slet note</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Eksportér -->
   <div id="exportModal" class="modal-overlay">
     <div class="modal-box">
@@ -231,7 +250,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="qrcode.js?v=7"></script>
-  <script src="app.js?v=7"></script>
+  <script src="qrcode.js?v=8"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

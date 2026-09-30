@@ -1,4 +1,4 @@
-const CACHE_NAME = 'flynote-v7';
+const CACHE_NAME = 'flynote-v8';
 const ASSETS = [
   './',
   './index.html',

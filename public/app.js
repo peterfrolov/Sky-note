@@ -18,6 +18,7 @@
   localStorage.setItem('flynote_device_id', deviceId);
   let draggedNoteId = null;
   let isReorderMode = false;
+  let notePendingDeleteId = null;
 
   // DOM Elements
   const noteTitleInput = document.getElementById('noteTitle');
@@ -222,7 +223,7 @@
       card.addEventListener('click', (e) => {
         if (e.target.closest('.btn-delete')) {
           e.stopPropagation();
-          deleteNote(note.id);
+          deleteNote(note.id, e.shiftKey);
           return;
         }
 
@@ -443,16 +444,35 @@
     broadcastNoteUpdate(newNote);
   }
 
-  function deleteNote(noteId) {
+  function deleteNote(noteId, skipConfirm = false) {
     if (notes.length <= 1) {
       showToast('Du kan ikke slette den sidste note');
       return;
     }
 
     const note = notes.find(n => n.id === noteId);
-    if (!confirm(`Er du sikker på, at du vil slette "${note?.title || 'noten'}"?`)) {
+    if (!note) return;
+
+    if (skipConfirm) {
+      executeDelete(noteId);
       return;
     }
+
+    notePendingDeleteId = noteId;
+    const deletePromptEl = document.getElementById('deleteModalPrompt');
+    if (deletePromptEl) {
+      deletePromptEl.innerHTML = `Er du sikker på, at du vil slette <b>"${escapeHtml(note.title || 'Uden titel')}"</b>?<br><span style="font-size:0.82rem; color:var(--text-muted); margin-top:6px; display:block;">Dette kan ikke fortrydes.</span>`;
+    }
+    const deleteModal = document.getElementById('deleteModal');
+    if (deleteModal) {
+      openModal(deleteModal);
+    } else {
+      executeDelete(noteId);
+    }
+  }
+
+  function executeDelete(noteId) {
+    if (!noteId) return;
 
     notes = notes.filter(n => n.id !== noteId);
     saveNotesToStorage();
@@ -470,7 +490,11 @@
         type: 'delete_note',
         noteId: noteId
       }));
+    } else {
+      fetch('./api/notes/' + noteId, { method: 'DELETE' }).catch(() => {});
     }
+
+    notePendingDeleteId = null;
   }
 
   // Handle Input & Debounced Auto-Saving
@@ -928,6 +952,26 @@
         if (modal) closeModal(modal);
       });
     });
+
+    const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+    if (btnConfirmDelete) {
+      btnConfirmDelete.addEventListener('click', () => {
+        const deleteModal = document.getElementById('deleteModal');
+        if (deleteModal) closeModal(deleteModal);
+        if (notePendingDeleteId) {
+          executeDelete(notePendingDeleteId);
+        }
+      });
+    }
+
+    const btnCancelDelete = document.getElementById('btnCancelDelete');
+    if (btnCancelDelete) {
+      btnCancelDelete.addEventListener('click', () => {
+        const deleteModal = document.getElementById('deleteModal');
+        if (deleteModal) closeModal(deleteModal);
+        notePendingDeleteId = null;
+      });
+    }
 
     document.querySelectorAll('.modal-overlay').forEach(modal => {
       modal.addEventListener('click', (e) => {
