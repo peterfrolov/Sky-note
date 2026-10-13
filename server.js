@@ -111,9 +111,53 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (url.pathname === '/api/sync') {
+    if (req.method === 'GET') {
+      const since = parseInt(url.searchParams.get('since') || '0', 10);
+      const hasUpdates = notes.some(n => (n.updatedAt || 0) > since);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        serverTime: Date.now(),
+        hasUpdates: hasUpdates,
+        notes: notes,
+        deletedIds: []
+      }));
+      return;
+    }
+  }
+
   if (url.pathname === '/api/notes' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(notes));
+    return;
+  }
+
+  if (url.pathname === '/api/notes' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        if (payload.notes && Array.isArray(payload.notes)) {
+          payload.notes.forEach(incoming => {
+            const idx = notes.findIndex(n => n.id === incoming.id);
+            if (idx !== -1) {
+              if ((incoming.updatedAt || 0) > (notes[idx].updatedAt || 0)) {
+                notes[idx] = incoming;
+              }
+            } else {
+              notes.push(incoming);
+            }
+          });
+          saveNotesToDisk();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, notes }));
+          return;
+        }
+      } catch (e) {}
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Ugyldig request' }));
+    });
     return;
   }
 

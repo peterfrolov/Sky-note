@@ -59,15 +59,25 @@ Du vil se følgende i terminalen:
 
 ---
 
-## 🌐 Gratis Cloud-Hosting (Adgang overalt via 4G/5G)
+## 🌐 Gratis Cloud-Hosting på Vercel (Adgang overalt via 4G/5G)
 
-Hvis du vil have adgang til dine noter, når du **ikke** er på samme Wi-Fi som computeren:
+Fly Note er 100% optimeret til **Vercel** med Serverless Functions og lynhurtig realtids sky-synkronisering.
 
-### Gratis 1-klik deploy på Render.com:
+### Sådan deployer du på 1 minut (Vercel):
+1. Gå til **[vercel.com/new](https://vercel.com/new)** (log ind med din GitHub bruger).
+2. Vælg dit repository **`fly-note`** og tryk **Import**.
+3. Lad alle indstillinger stå som standard (Zero-config) og tryk **Deploy**.
+4. Færdig! Du har nu dit eget officielle link, f.eks. `https://fly-note.vercel.app` 🎉
+5. **(Valgfrit - Gratis Cloud Database)**:
+   - I dit Vercel projekt på dashboardet: Gå til fanen **Storage** ➔ Tryk **Create Database** ➔ Vælg **KV** (eller Upstash Redis).
+   - Tryk **Connect to Project**. Fly Note registrerer automatisk forbindelsen og gemmer alle noter i skyen for evigt!
+
+---
+
+### Alternativ: Render.com
 1. Opret en gratis konto på [Render.com](https://render.com).
 2. Opret et nyt **Web Service** og forbind dit GitHub repository `peterfrolov/fly-note`.
 3. Render bruger automatisk den medfølgende `render.yaml`.
-4. Du får din egen faste webadresse (f.eks. `https://fly-note.onrender.com`), som du kan bogmærke på både PC og mobil!
 
 ---
 

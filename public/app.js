@@ -595,16 +595,75 @@
       };
 
       socket.onclose = () => {
-        setSyncStatus('offline', 'Offline (genforbinder...)');
-        setTimeout(connectWebSocket, 3000);
+        // Fall back to cloud sync polling when WebSocket is closed (e.g. on Vercel)
+        startCloudSync();
+        // Still retry WebSocket occasionally for local server runs
+        setTimeout(connectWebSocket, 15000);
       };
 
       socket.onerror = () => {
-        setSyncStatus('offline', 'Offline (gemt lokalt)');
+        startCloudSync();
       };
     } catch (e) {
-      setSyncStatus('offline', 'Offline (gemt lokalt)');
+      startCloudSync();
     }
+  }
+
+  // Cloud Sync Polling Engine (Vercel Serverless & HTTP Fallback)
+  let cloudSyncTimeout = null;
+  let isCloudPolling = false;
+  let lastSyncTime = 0;
+  let cloudSyncStarted = false;
+
+  function startCloudSync() {
+    if (cloudSyncStarted) return;
+    cloudSyncStarted = true;
+    setSyncStatus('online', 'Sky-synkroniseret');
+
+    async function poll() {
+      if (isCloudPolling) {
+        scheduleNext();
+        return;
+      }
+      isCloudPolling = true;
+
+      try {
+        const res = await fetch(`./api/sync?since=${lastSyncTime}&deviceId=${encodeURIComponent(deviceId)}`, {
+          cache: 'no-store'
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.serverTime) lastSyncTime = data.serverTime;
+          handleServerMessage({
+            type: 'all_notes',
+            notes: data.notes,
+            deletedIds: data.deletedIds
+          });
+          if (syncDot && !syncDot.classList.contains('peer-active')) {
+            setSyncStatus('online', 'Sky-synkroniseret');
+          }
+        }
+      } catch (err) {
+        // Network blip, will retry
+      } finally {
+        isCloudPolling = false;
+        scheduleNext();
+      }
+    }
+
+    function scheduleNext() {
+      clearTimeout(cloudSyncTimeout);
+      const delay = document.hidden ? 6000 : 1500;
+      cloudSyncTimeout = setTimeout(poll, delay);
+    }
+
+    poll();
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        poll();
+      }
+    });
   }
 
   function handleServerMessage(data) {
@@ -651,24 +710,81 @@
         activeDevicesInfo.innerHTML = `<span>☁️ Sky-synkronisering aktiv</span>`;
       }
     } else if (data.type === 'all_notes') {
-      if (Array.isArray(data.notes) && data.notes.length > 0) {
-        // Merge notes smartly
+      if (Array.isArray(data.notes)) {
         const serverNotes = data.notes;
+        let listChanged = false;
+        let activeNoteChanged = false;
+
+        // If local has notes and server has only the default welcome note, push local notes to cloud
+        if (notes.length > 1 && serverNotes.length === 1 && serverNotes[0].id === 'velkommen') {
+          fetch('./api/notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes: notes })
+          }).catch(() => {});
+        }
+
+        // Handle deleted notes
+        if (Array.isArray(data.deletedIds) && data.deletedIds.length > 0) {
+          const prevLen = notes.length;
+          notes = notes.filter(n => !data.deletedIds.includes(n.id));
+          if (notes.length !== prevLen) {
+            listChanged = true;
+            if (data.deletedIds.includes(currentNoteId)) {
+              if (notes.length > 0) {
+                selectNote(notes[0].id);
+              }
+            }
+          }
+        }
+
+        // Smart merge server notes
         serverNotes.forEach(sNote => {
           const idx = notes.findIndex(n => n.id === sNote.id);
           if (idx === -1) {
             notes.push(sNote);
-          } else if ((sNote.updatedAt || 0) > (notes[idx].updatedAt || 0)) {
-            notes[idx] = sNote;
+            listChanged = true;
+          } else {
+            const localNote = notes[idx];
+            if ((sNote.updatedAt || 0) > (localNote.updatedAt || 0)) {
+              if (currentNoteId === sNote.id) {
+                const isTyping = document.activeElement === noteContentInput || document.activeElement === noteTitleInput;
+                if (!isTyping) {
+                  notes[idx] = sNote;
+                  activeNoteChanged = true;
+                  listChanged = true;
+                } else if (sNote.content !== noteContentInput.value) {
+                  const selStart = noteContentInput.selectionStart;
+                  const selEnd = noteContentInput.selectionEnd;
+                  notes[idx] = sNote;
+                  isReceivingRemoteUpdate = true;
+                  noteTitleInput.value = sNote.title || '';
+                  noteContentInput.value = sNote.content || '';
+                  try {
+                    noteContentInput.setSelectionRange(selStart, selEnd);
+                  } catch (e) {}
+                  isReceivingRemoteUpdate = false;
+                  updateStats();
+                  listChanged = true;
+                }
+              } else {
+                notes[idx] = sNote;
+                listChanged = true;
+              }
+            }
           }
         });
-        saveNotesToStorage();
-        renderNotesList();
-        if (currentNoteId) {
+
+        if (listChanged) {
+          saveNotesToStorage();
+          renderNotesList();
+        }
+        if (activeNoteChanged && currentNoteId) {
           const cur = notes.find(n => n.id === currentNoteId);
           if (cur) {
             noteTitleInput.value = cur.title || '';
             noteContentInput.value = cur.content || '';
+            updateStats();
           }
         }
       }
@@ -703,23 +819,32 @@
     syncText.textContent = message || '';
   }
 
-  // Fetch Server Info (for QR Code pairing)
+  // Fetch Server Info (for QR Code pairing & Cloud detection)
   function fetchServerInfo() {
     fetch('./api/info')
       .then(res => res.json())
       .then(info => {
         if (info && info.ip) {
           serverInfo = info;
+          if (info.isCloud) {
+            startCloudSync();
+          }
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        startCloudSync();
+      });
   }
 
   // QR Code & Mobile Pairing Modal
   function openPhoneModal() {
     try {
       let origin = window.location.origin;
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      const isCloudEnv = Boolean(serverInfo && serverInfo.isCloud) || 
+                         window.location.hostname.includes('vercel.app') || 
+                         (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && !window.location.hostname.startsWith('192.168.'));
+
+      if (!isCloudEnv && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
         if (serverInfo.ip && serverInfo.ip !== 'localhost' && serverInfo.ip !== '127.0.0.1') {
           origin = `http://${serverInfo.ip}:${serverInfo.port || 3000}`;
         }
@@ -733,10 +858,23 @@
 
       const directEl = document.getElementById('directAddressCode');
       if (directEl) {
-        const host = (serverInfo.ip && serverInfo.ip !== 'localhost' && serverInfo.ip !== '127.0.0.1')
-          ? `${serverInfo.ip}:${serverInfo.port || 3000}`
-          : window.location.host;
-        directEl.textContent = `http://${host}`;
+        if (isCloudEnv) {
+          directEl.textContent = `${window.location.host}`;
+        } else {
+          const host = (serverInfo.ip && serverInfo.ip !== 'localhost' && serverInfo.ip !== '127.0.0.1')
+            ? `${serverInfo.ip}:${serverInfo.port || 3000}`
+            : window.location.host;
+          directEl.textContent = `http://${host}`;
+        }
+      }
+
+      const directNoteEl = document.getElementById('directAddressNote');
+      if (directNoteEl) {
+        if (isCloudEnv) {
+          directNoteEl.innerHTML = `☁️ <b>Sky-synkroniseret</b> – virker overalt i verden på både 4G, 5G og alle Wi-Fi netværk!`;
+        } else {
+          directNoteEl.innerHTML = `Telefon og PC skal være på samme Wi-Fi (<b>${serverInfo.wifiName || 'VI HAR VIRUS_5G'}</b>)`;
+        }
       }
 
       if (qrCodeFrame) {

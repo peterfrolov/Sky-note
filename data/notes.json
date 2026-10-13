@@ -1,21 +1,15 @@
 [
   {
+    "id": "note_eyq9283",
+    "title": "Ny note",
+    "content": "",
+    "updatedAt": 1790773956237
+  },
+  {
     "id": "velkommen",
     "title": "Velkommen til Sky-Note ☁️",
     "content": "# Velkommen til Sky-Note! ⚡\n\nDette er dit nye lynhurtige note-program med automatisk sky-synkronisering.\n\n### 📱 Sådan forbinder du din mobil:\n1. Tryk på knappen **\"Forbind mobil\"** øverst til højre.\n2. Scan QR-koden med mobilens kamera.\n3. Skriv på PC'en, og se teksten dukke op på mobilen med det samme – og omvendt!\n\n### ⚡ Funktioner:\n- [x] Lynhurtig indlæsning & fjerlet i baggrunden\n- [x] Realtids sky-synkronisering mellem PC og telefon\n- [x] Fungerer 100% offline (PWA app-understøttelse)\n- [ ] Opret din første egen note\n- [ ] Prøv tjeklisten ved at klikke af herover\n\nGod fornøjelse med noterne!",
     "updatedAt": 1790712875849
-  },
-  {
-    "id": "note_1hrzjdk",
-    "title": "Ny note",
-    "content": "",
-    "updatedAt": 1790769924347
-  },
-  {
-    "id": "note_eyq9283",
-    "title": "Ny note",
-    "content": "",
-    "updatedAt": 1790769924197
   },
   {
     "id": "note_af52qfl",
