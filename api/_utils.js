@@ -54,7 +54,23 @@ function sendJson(res, statusCode, data) {
   }
 }
 
+// Wraps a handler so storage failures reach the app as a clear error instead of a fake success
+function withErrors(handler) {
+  return async (req, res) => {
+    try {
+      await handler(req, res);
+    } catch (e) {
+      console.error('[Fly Note]', e);
+      if (e && e.code === 'cloud_storage_missing') {
+        return sendJson(res, 503, { error: 'cloud_storage_missing', message: e.message });
+      }
+      sendJson(res, 500, { error: 'storage_error', message: String((e && e.message) || e) });
+    }
+  };
+}
+
 module.exports = {
+  withErrors,
   setCors,
   parseBody,
   sendJson

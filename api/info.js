@@ -1,4 +1,5 @@
 const { setCors, sendJson } = require('./_utils');
+const { isConfigured } = require('./storage');
 
 module.exports = async (req, res) => {
   if (setCors(req, res)) return;
@@ -6,7 +7,8 @@ module.exports = async (req, res) => {
   sendJson(res, 200, {
     ip: 'cloud',
     isCloud: true,
+    cloudStorage: isConfigured(),
     service: 'Fly Note Cloud',
-    version: '1.0.0'
+    version: '1.1.0'
   });
 };

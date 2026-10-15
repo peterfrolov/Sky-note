@@ -20,6 +20,19 @@
   let isReorderMode = false;
   let notePendingDeleteId = null;
 
+  // Cloud sync bookkeeping: notes edited here that the cloud has not confirmed yet,
+  // and deletions made here that have not reached the cloud yet. Both survive reloads.
+  const loadJson = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
+  const dirtyIds = new Set(loadJson('flynote_dirty', []));
+  const pendingDeletes = loadJson('flynote_pending_deletes', {});
+  let cloudState = 'unknown'; // 'ok' | 'offline' | 'missing' | 'error'
+  function savePendingState() {
+    try {
+      localStorage.setItem('flynote_dirty', JSON.stringify([...dirtyIds]));
+      localStorage.setItem('flynote_pending_deletes', JSON.stringify(pendingDeletes));
+    } catch (e) {}
+  }
+
   // DOM Elements
   const noteTitleInput = document.getElementById('noteTitle');
   const noteContentInput = document.getElementById('noteContent');
@@ -491,7 +504,10 @@
         noteId: noteId
       }));
     } else {
-      fetch('./api/notes/' + noteId, { method: 'DELETE' }).catch(() => {});
+      pendingDeletes[noteId] = Date.now();
+      dirtyIds.delete(noteId);
+      savePendingState();
+      flushPendingToCloud();
     }
 
     notePendingDeleteId = null;
@@ -508,6 +524,8 @@
       activeNote.title = noteTitleInput.value.trim() || 'Uden titel';
       activeNote.content = noteContentInput.value;
       activeNote.updatedAt = Date.now();
+      dirtyIds.add(activeNote.id);
+      savePendingState();
       saveNotesToStorage();
       renderNotesList();
       updateStats();
@@ -538,21 +556,7 @@
       setSyncStatus('online', 'Gemt i skyen');
     } else {
       // Fallback: send via REST API
-      fetch('./api/notes/' + note.id, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: note.title,
-          content: note.content,
-          updatedAt: note.updatedAt,
-          deviceId: deviceId,
-          deviceName: deviceName
-        })
-      }).then(() => {
-        setSyncStatus('online', 'Gemt i skyen');
-      }).catch(() => {
-        setSyncStatus('offline', 'Offline (gemt lokalt)');
-      });
+      flushPendingToCloud();
     }
   }
 
@@ -618,7 +622,7 @@
   function startCloudSync() {
     if (cloudSyncStarted) return;
     cloudSyncStarted = true;
-    setSyncStatus('online', 'Sky-synkroniseret');
+    setSyncStatus('saving', 'Forbinder til skyen...');
 
     async function poll() {
       if (isCloudPolling) {
@@ -634,17 +638,26 @@
         if (res.ok) {
           const data = await res.json();
           if (data.serverTime) lastSyncTime = data.serverTime;
+          cloudState = 'ok';
+          // Notes that exist only on this device (made offline or while the cloud was broken) go up too
+          const serverIds = new Set((data.notes || []).map(n => n.id));
+          const deleted = new Set(data.deletedIds || []);
+          notes.forEach(n => {
+            if (!serverIds.has(n.id) && !deleted.has(n.id) && n.id !== 'velkommen') dirtyIds.add(n.id);
+          });
+          savePendingState();
           handleServerMessage({
             type: 'all_notes',
             notes: data.notes,
             deletedIds: data.deletedIds
           });
-          if (syncDot && !syncDot.classList.contains('peer-active')) {
-            setSyncStatus('online', 'Sky-synkroniseret');
-          }
+          await flushPendingToCloud();
+        } else {
+          await handleCloudError(res);
         }
       } catch (err) {
-        // Network blip, will retry
+        cloudState = 'offline';
+        showCloudState();
       } finally {
         isCloudPolling = false;
         scheduleNext();
@@ -715,14 +728,6 @@
         let listChanged = false;
         let activeNoteChanged = false;
 
-        // If local has notes and server has only the default welcome note, push local notes to cloud
-        if (notes.length > 1 && serverNotes.length === 1 && serverNotes[0].id === 'velkommen') {
-          fetch('./api/notes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ notes: notes })
-          }).catch(() => {});
-        }
 
         // Handle deleted notes
         if (Array.isArray(data.deletedIds) && data.deletedIds.length > 0) {
@@ -747,6 +752,7 @@
           } else {
             const localNote = notes[idx];
             if ((sNote.updatedAt || 0) > (localNote.updatedAt || 0)) {
+              dirtyIds.delete(sNote.id);
               if (currentNoteId === sNote.id) {
                 const isTyping = document.activeElement === noteContentInput || document.activeElement === noteTitleInput;
                 if (!isTyping) {
@@ -811,6 +817,68 @@
           renderNotesList();
         }
       }
+    }
+  }
+
+  // Sends every unconfirmed edit and deletion to the cloud. Only clears what the server confirmed.
+  let isFlushing = false;
+  async function flushPendingToCloud() {
+    if (isFlushing) return;
+    if (!dirtyIds.size && !Object.keys(pendingDeletes).length) { showCloudState(); return; }
+    isFlushing = true;
+    setSyncStatus('saving', 'Gemmer...');
+    try {
+      for (const [id, deletedAt] of Object.entries(pendingDeletes)) {
+        const res = await fetch(`./api/notes/${encodeURIComponent(id)}?deletedAt=${deletedAt}`, { method: 'DELETE' });
+        if (!res.ok) return handleCloudError(res);
+        delete pendingDeletes[id];
+        savePendingState();
+      }
+      const batch = notes.filter(n => dirtyIds.has(n.id));
+      dirtyIds.forEach(id => { if (!notes.some(n => n.id === id)) dirtyIds.delete(id); });
+      if (batch.length) {
+        const sent = new Map(batch.map(n => [n.id, n.updatedAt]));
+        const res = await fetch('./api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes: batch.map(n => ({ id: n.id, title: n.title, content: n.content, updatedAt: n.updatedAt })) })
+        });
+        if (!res.ok) return handleCloudError(res);
+        // Keep anything typed while the request was in flight
+        sent.forEach((ts, id) => {
+          const cur = notes.find(n => n.id === id);
+          if (!cur || cur.updatedAt === ts) dirtyIds.delete(id);
+        });
+        savePendingState();
+      }
+      cloudState = 'ok';
+    } catch (e) {
+      cloudState = 'offline';
+    } finally {
+      isFlushing = false;
+      showCloudState();
+    }
+  }
+
+  async function handleCloudError(res) {
+    let body = {};
+    try { body = await res.json(); } catch (e) {}
+    cloudState = body.error === 'cloud_storage_missing' ? 'missing' : 'error';
+    showCloudState();
+  }
+
+  function showCloudState() {
+    if (isFlushing) return;
+    const waiting = dirtyIds.size + Object.keys(pendingDeletes).length;
+    if (cloudState === 'missing') {
+      setSyncStatus('error', 'Sky-lager mangler – gemt kun her');
+    } else if (cloudState === 'error') {
+      setSyncStatus('error', 'Synkfejl – gemt kun her');
+    } else if (cloudState === 'offline') {
+      setSyncStatus('offline', waiting ? `Offline – ${waiting} venter` : 'Offline');
+    } else if (cloudState === 'ok') {
+      if (syncDot && syncDot.classList.contains('peer-active')) return;
+      setSyncStatus(waiting ? 'saving' : 'online', waiting ? 'Gemmer...' : 'Gemt i skyen');
     }
   }
 

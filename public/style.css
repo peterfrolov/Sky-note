@@ -495,6 +495,10 @@ html, body {
   background-color: var(--text-muted);
 }
 
+.sync-dot.error {
+  background-color: var(--danger);
+}
+
 .sync-dot.peer-active {
   background-color: var(--accent);
   box-shadow: 0 0 8px var(--accent);
