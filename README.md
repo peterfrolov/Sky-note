@@ -67,10 +67,13 @@ Fly Note er 100% optimeret til **Vercel** med Serverless Functions og lynhurtig 
 1. Gå til **[vercel.com/new](https://vercel.com/new)** (log ind med din GitHub bruger).
 2. Vælg dit repository **`fly-note`** og tryk **Import**.
 3. Lad alle indstillinger stå som standard (Zero-config) og tryk **Deploy**.
-4. Færdig! Du har nu dit eget officielle link, f.eks. `https://fly-note.vercel.app` 🎉
-5. **(Valgfrit - Gratis Cloud Database)**:
-   - I dit Vercel projekt på dashboardet: Gå til fanen **Storage** ➔ Tryk **Create Database** ➔ Vælg **KV** (eller Upstash Redis).
-   - Tryk **Connect to Project**. Fly Note registrerer automatisk forbindelsen og gemmer alle noter i skyen for evigt!
+4. **Tilføj en database (påkrævet for synk)**:
+   - I dit Vercel projekt: Gå til fanen **Storage** ➔ **Create Database** ➔ Vælg **Upstash for Redis** (gratis plan).
+   - Tryk **Connect to Project** og vælg projektet. Det sætter `KV_REST_API_URL` og `KV_REST_API_TOKEN` automatisk.
+   - Redeploy projektet (Deployments ➔ ⋯ ➔ Redeploy).
+5. Færdig! Du har nu dit eget link, f.eks. `https://fly-note.vercel.app` 🎉
+
+> **Hvorfor databasen er nødvendig:** På Vercel kan hver forespørgsel ramme en ny serverinstans, så noter gemt i hukommelse eller `/tmp` ses ikke af dine andre enheder. Uden database viser appen **"Sky-lager mangler – gemt kun her"**, og noterne bliver på den enkelte enhed, indtil databasen er forbundet. Derefter sendes de op automatisk.
 
 ---
 
